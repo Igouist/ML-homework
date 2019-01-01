@@ -1,0 +1,9 @@
+Faces/P0001/0011.jpg 0
+Faces/P0001/0012.jpg 0
+Faces/P0001/0013.jpg 0
+Faces/P0002/0011.jpg 1
+Faces/P0002/0012.jpg 1
+Faces/P0002/0013.jpg 1
+Faces/P0003/0011.jpg 2
+Faces/P0003/0012.jpg 2
+Faces/P0003/0013.jpg 2
