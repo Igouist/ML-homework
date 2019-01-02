@@ -17,7 +17,7 @@ print("="*100)
 #    讀取所有圖片位置
 # ====================================================================================================
 
-PATH = 'C:/Users/wei/Documents/ML/Faces' # 指定圖像資料夾路徑
+PATH = 'C:/Faces' # 指定圖像資料夾路徑
 facesDir = os.listdir(PATH)  # 開啟圖像資料夾
 trainDataFiles = open('train.txt', 'w') # 以寫入模式開啟 train.txt
 testDataFiles = open('test.txt', 'w') # 以寫入模式 test.txt
@@ -29,7 +29,7 @@ print("已讀取指定資料夾 %s，包含 %s 個檔案" %(PATH, len(facesDir))
 for i in range(len(facesDir)):
     d2 = os.listdir (PATH + '/%s' %(facesDir[i])) # 進入 Faces 資料夾再下一層的各資料夾
 
-    for j in range(len(d2)-3): # 注意這邊減去一張（最後一張不拿），是為了保留等等測試集要用的圖片
+    for j in range(len(d2)-3): # 注意這邊減去三張（最後三張不拿），是為了保留等等測試集要用的圖片
         str1 = PATH + '/%s/%s' %(facesDir[i], d2[j]) # 取得每個子資料夾的內容檔案路徑
         print("正在寫入第 %s 人的圖像檔案路徑至訓練集 Train.txt：%s" %(i + 1 , str1))
         trainDataFiles.write("%s %d\n" % (str1, i)) # 將每個內容檔案路徑都存放到 train.txt，並標註是第幾個人
@@ -37,7 +37,7 @@ for i in range(len(facesDir)):
     for h in range(3):
         str1 = PATH + '/%s/%s' %(facesDir[i], d2[-h]) # 取得每個資料夾中的最後一張圖片的路徑
         print("正在寫入第 %s 人的圖像檔案路徑至測試集  Test.txt：%s" %(i + 1, str1))
-        testDataFiles.write("%s %d\n" % (str1, i)) # 將每個資料夾最後一張圖片的路徑都存放到 test.txt，並標註是第幾個人
+        testDataFiles.write("%s %d\n" % (str1, i)) # 將每個資料夾最後三張圖片的路徑都存放到 test.txt，並標註是第幾個人
 
 # 關閉 train.txt 和 test.txt
 trainDataFiles.close() 
@@ -64,7 +64,7 @@ def load_img(f):
         print("正在處理圖像：%s" %fn)
         
         im1 = cv2.imread(fn) # 讀取圖檔
-        im1 = cv2.resize(im1, (32,32)) # 調整圖片尺寸
+        im1 = cv2.resize(im1, (64,64)) # 調整圖片尺寸
         im1 = cv2.cvtColor(im1, cv2.COLOR_BGR2GRAY) # 灰階
 
         vec = np.reshape(im1, [-1]) # -1 => 長長一條的矩陣
@@ -86,7 +86,6 @@ x, y = load_img('train.txt')
 tx, ty = load_img('test.txt')
 
 print("="*100,"\n處理完成\n訓練集已轉換為 %s 的圖像矩陣和 %s 的標籤\n測試集已轉換為 %s 的圖像矩陣和 %s 的標籤" %(x.shape, y.shape, tx.shape, ty.shape))
-# (2147,4096) & (113,4096)
 print("="*100)
 
 # ====================================================================================================
@@ -95,6 +94,10 @@ print("="*100)
 
 m = np.mean(x, 0) # 全局平均
 xm = x - m
+
+# xm /= np.std(xm, axis = 0)
+# 這邊如果對原始資料做歸一化，成功率會砍半，因為原始資料本來就很像
+# 但是若對特徵做整理效果反而會提升
 
 # 初始化 SW 和 SB
 sw = np.zeros((30,30), dtype=np.float32)
@@ -125,6 +128,9 @@ S = np.diag(S)
 SWnew = V.dot(LA.pinv(S)).dot(U.T)
 A = SWnew.dot(sb)
 
+# 白化
+A = A / np.sqrt(S + 1e-5) 
+
 print("分解完成，正在計算特徵矩陣向量")
 w, v = LA.eig(A) # 計算 特徵矩陣向量
 
@@ -134,6 +140,11 @@ print("特徵向量：", v.shape)
 v = -np.sort(-v, axis = 1) # 按列遞減排序，若未排序正確率會下降很多
 
 p1 = v[:, 0:3] # 取出前三個特徵值，想降到幾維就取幾個
+
+# 歸一化
+for i in range(3):
+    L = LA.norm(p1[:,i])
+    p1[:,i] = p1[:,i]/L
 
 U = np.matmul(np.transpose(xm), p1) # 將測試影像和特徵值做矩陣相乘，得到降維後的數據
 

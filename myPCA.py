@@ -26,7 +26,7 @@ print("="*100)
 #    讀取所有圖片位置
 # ====================================================================================================
 
-PATH = 'C:/Users/wei/Documents/ML/Faces' # 指定圖像資料夾路徑
+PATH = 'C:/Faces' # 指定圖像資料夾路徑
 facesDir = os.listdir(PATH)  # 開啟圖像資料夾
 trainDataFiles = open('train.txt', 'w') # 以寫入模式開啟 train.txt
 testDataFiles = open('test.txt', 'w') # 以寫入模式 test.txt
@@ -73,7 +73,7 @@ def load_img(f):
         print("正在處理圖像：%s" %fn)
         
         im1 = cv2.imread(fn) # 讀取圖檔
-        im1 = cv2.resize(im1, (32,32)) # 調整圖片尺寸
+        im1 = cv2.resize(im1, (64,64)) # 調整圖片尺寸
         im1 = cv2.cvtColor(im1, cv2.COLOR_BGR2GRAY) # 灰階
 
         vec = np.reshape(im1, [-1]) # -1 => 長長一條的矩陣
@@ -108,8 +108,13 @@ print("訓練集 矩陣均值：", m1.shape)
 xm = x - m1 # 零均值化，也就是陣列的所有數都減去平均
 print("訓練集 零均值化：", xm.shape)
 
+# xm /= np.std(xm, axis = 0)
+# 這邊如果對原始資料做歸一化，成功率會砍半，因為原始資料本來就很像
+# 但是若對特徵做整理效果反而會提升
+
 C = np.cov(xm) # 計算 共變異數矩陣 # rowvar = 0
 print("訓練集 共變異數：", C.shape) 
+
 
 print("\n正在計算特徵向量")
 
@@ -117,7 +122,14 @@ w, v = LA.eig(C) # 計算 特徵矩陣向量
 print("\n訓練集 特徵矩陣向量\n特徵值：", w.shape)
 print("特徵向量：", v.shape)
 
+v = -np.sort(-v, axis = 1)
+
 p1 = v[:, 0:3] # 取出前三個特徵值，想降到幾維就取幾個
+
+# 對特徵再歸一化
+for i in range(3):
+    L = LA.norm(p1[:,i])
+    p1[:,i] = p1[:,i]/L
 
 U = np.matmul(np.transpose(xm), p1) # 將測試影像和特徵值做矩陣相乘，得到降維後的數據
 
